@@ -360,7 +360,8 @@ def train():
         lora_config = LoraConfig(
             r=lora_args.lora_r,
             lora_alpha=lora_args.lora_alpha,
-            target_modules=lora_args.lora_target_modules,
+            #target_modules=lora_args.lora_target_modules,
+            target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "dense"],
             lora_dropout=lora_args.lora_dropout,
             bias=lora_args.lora_bias,
             task_type="CAUSAL_LM",
