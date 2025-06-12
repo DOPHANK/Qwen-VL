@@ -254,7 +254,11 @@ def make_supervised_data_module(
 
 def train():
     global local_rank
-    
+
+    print(model_args)
+    print(data_args)
+    print(training_args)
+ 
     parser = transformers.HfArgumentParser(
         (ModelArguments, DataArguments, TrainingArguments, LoraArguments)
     )
