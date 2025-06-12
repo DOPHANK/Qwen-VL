@@ -130,9 +130,14 @@ def preprocess(
 ) -> Dict:
     roles = {"user": "<|im_start|>user", "assistant": "<|im_start|>assistant"}
 
-    im_start = tokenizer.im_start_id
-    im_end = tokenizer.im_end_id
-    nl_tokens = tokenizer('\n').input_ids
+    #im_start = tokenizer.im_start_id
+    #im_end = tokenizer.im_end_id
+    #nl_tokens = tokenizer('\n').input_ids
+
+    im_start = tokenizer.convert_tokens_to_ids("<|im_start|>")
+    im_end = tokenizer.convert_tokens_to_ids("<|im_end|>")
+    nl_tokens = tokenizer('\n', add_special_tokens=False).input_ids
+    
     _system = tokenizer('system').input_ids + nl_tokens
     _user = tokenizer('user').input_ids + nl_tokens
     _assistant = tokenizer('assistant').input_ids + nl_tokens
