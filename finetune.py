@@ -352,6 +352,11 @@ def train():
             modules_to_save = None
         else:
             modules_to_save = ["wte", "lm_head"]
+
+        # Patch LoRA target modules for Qwen2.5-VL
+        if lora_args.lora_target_modules is None or len(lora_args.lora_target_modules) == 0:
+            lora_args.lora_target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "dense"]
+
         lora_config = LoraConfig(
             r=lora_args.lora_r,
             lora_alpha=lora_args.lora_alpha,
