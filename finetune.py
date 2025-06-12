@@ -385,16 +385,34 @@ def train():
     #    if training_args.use_lora and lora_args.q_lora
     #    else None,
     #)
+    
+    #model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
+    #        model_args.model_name_or_path,
+    #        config=config,
+    #        cache_dir=training_args.cache_dir,
+    #        device_map="auto",
+    #        trust_remote_code=True,
+    #        torch_dtype=compute_dtype,
+    #        quantization_config=None,
+    #        low_cpu_mem_usage=True
+    #)
+    model_kwargs = dict(
+        config=config,
+        cache_dir=training_args.cache_dir,
+        trust_remote_code=True,
+        torch_dtype=compute_dtype,
+        quantization_config=None,
+        low_cpu_mem_usage=True
+    )
+    
+    if training_args.deepspeed is None:
+        model_kwargs["device_map"] = "auto"
+    
     model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
-            model_args.model_name_or_path,
-            config=config,
-            cache_dir=training_args.cache_dir,
-            device_map="auto",
-            trust_remote_code=True,
-            torch_dtype=compute_dtype,
-            quantization_config=None,
-            low_cpu_mem_usage=True
-        )
+        model_args.model_name_or_path,
+        **model_kwargs
+    )
+
 
     if not training_args.use_lora:
         if training_args.fix_vit and hasattr(model,'transformer') and hasattr(model.transformer,'visual'):
