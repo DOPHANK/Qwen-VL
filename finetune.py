@@ -413,7 +413,7 @@ def train():
 
     # Start trainner
     trainer = Trainer(
-        model=model, tokenizer=tokenizer, args=training_args, **data_module, label_names=["labels"],
+        model=model, tokenizer=tokenizer, args=training_args, **data_module,
     )
 
     trainer.train()
