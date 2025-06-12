@@ -16,6 +16,7 @@ from transformers import Trainer, GPTQConfig
 from transformers.trainer_pt_utils import LabelSmoother
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 from accelerate.utils import DistributedType
+from transformers import Qwen2_5_VLForConditionalGeneration
 
 IGNORE_TOKEN_ID = LabelSmoother.ignore_index
 
@@ -299,18 +300,31 @@ def train():
     config.use_cache = False
 
     # Load model and tokenizer
-    model = transformers.AutoModelForCausalLM.from_pretrained(
-        model_args.model_name_or_path,
-        config=config,
-        cache_dir=training_args.cache_dir,
-        device_map=device_map,
-        trust_remote_code=True,
-        quantization_config=GPTQConfig(
-            bits=4, disable_exllama=True
+    #model = transformers.AutoModelForCausalLM.from_pretrained(
+    #    model_args.model_name_or_path,
+    #    config=config,
+    #    cache_dir=training_args.cache_dir,
+    #    device_map=device_map,
+    #    trust_remote_code=True,
+    #    quantization_config=GPTQConfig(
+    #        bits=4, disable_exllama=True
+    #    )
+    #    if training_args.use_lora and lora_args.q_lora
+    #    else None,
+    #)
+    model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
+            model_args.model_name_or_path,
+            config=config,
+            cache_dir=training_args.cache_dir,
+            device_map=device_map,
+            trust_remote_code=True,
+            torch_dtype=compute_dtype,
+            quantization_config=GPTQConfig(
+                bits=4, disable_exllama=True
+            )
+            if training_args.use_lora and lora_args.q_lora
+            else None,
         )
-        if training_args.use_lora and lora_args.q_lora
-        else None,
-    )
 
     if not training_args.use_lora:
         if training_args.fix_vit and hasattr(model,'transformer') and hasattr(model.transformer,'visual'):
