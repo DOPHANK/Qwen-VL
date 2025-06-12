@@ -254,11 +254,7 @@ def make_supervised_data_module(
 
 def train():
     global local_rank
-
-    print(model_args)
-    print(data_args)
-    print(training_args)
- 
+    
     parser = transformers.HfArgumentParser(
         (ModelArguments, DataArguments, TrainingArguments, LoraArguments)
     )
@@ -272,6 +268,10 @@ def train():
     if getattr(training_args, 'deepspeed', None) and getattr(lora_args, 'q_lora', False):
         training_args.distributed_state.distributed_type = DistributedType.DEEPSPEED
 
+    print(model_args)
+    print(data_args)
+    print(training_args)
+    
     compute_dtype = (
         torch.float16
         if training_args.fp16
