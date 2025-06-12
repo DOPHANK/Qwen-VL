@@ -283,7 +283,24 @@ def make_supervised_data_module(
     )
     rank0_print("Loading data...")
 
-    train_json = json.load(open(data_args.data_path, "r"))
+    #train_json = json.load(open(data_args.data_path, "r"))
+    if os.path.isdir(data_args.data_path):
+        train_json = []
+        for root, _, files in os.walk(data_args.data_path):
+            for fname in files:
+                if fname.endswith(".json"):
+                    with open(os.path.join(root, fname), "r") as f:
+                        try:
+                            item = json.load(f)
+                            if isinstance(item, list):
+                                train_json.extend(item)
+                            else:
+                                train_json.append(item)
+                        except Exception as e:
+                            print(f"Skipping {fname} due to: {e}")
+    else:
+        train_json = json.load(open(data_args.data_path, "r"))
+
     train_dataset = dataset_cls(train_json, tokenizer=tokenizer, max_len=max_len)
 
     if data_args.eval_data_path:
