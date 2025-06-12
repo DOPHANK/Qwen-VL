@@ -181,8 +181,15 @@ class SupervisedDataset(Dataset):
 
     def __init__(self, raw_data, tokenizer: transformers.PreTrainedTokenizer, max_len: int):
         super(SupervisedDataset, self).__init__()
-
+        
         rank0_print("Formatting inputs...")
+
+        #Add-in
+        if isinstance(raw_data, str):  # if a path, load it
+            with open(raw_data, "r", encoding="utf-8") as f:
+                raw_data = json.load(f)
+        assert isinstance(raw_data, list), "Expected list of dicts in raw_data"
+
         sources = [example["conversations"] for example in raw_data]
         data_dict = preprocess(sources, tokenizer, max_len)
 
@@ -268,10 +275,6 @@ def train():
 
     if getattr(training_args, 'deepspeed', None) and getattr(lora_args, 'q_lora', False):
         training_args.distributed_state.distributed_type = DistributedType.DEEPSPEED
-
-    print(model_args)
-    print(data_args)
-    print(training_args)
     
     compute_dtype = (
         torch.float16
