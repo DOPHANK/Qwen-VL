@@ -105,20 +105,43 @@ def rank0_print(*args):
     if local_rank == 0:
         print(*args)
 
+#def safe_save_model_for_hf_trainer(trainer: transformers.Trainer, output_dir: str, bias="none"):
+#    """Collects the state dict and dump to disk."""
+#    # check if zero3 mode enabled
+#    if deepspeed.is_deepspeed_zero3_enabled():
+#        state_dict = trainer.model_wrapped._zero3_consolidated_16bit_state_dict()
+#    else:
+#        if trainer.args.use_lora:
+#            state_dict = get_peft_state_maybe_zero_3(
+#                trainer.model.named_parameters(), bias
+#            )
+#        else:
+#            state_dict = trainer.model.state_dict()
+#    if trainer.args.should_save and trainer.args.local_rank == 0:
+#        trainer._save(output_dir, state_dict=state_dict)
+
+from peft.utils import get_peft_state_maybe_zero_3
 
 def safe_save_model_for_hf_trainer(trainer: transformers.Trainer, output_dir: str, bias="none"):
-    """Collects the state dict and dump to disk."""
-    # check if zero3 mode enabled
-    if deepspeed.is_deepspeed_zero3_enabled():
+    """Collects the state dict and dumps to disk, supporting LoRA and DeepSpeed Zero3."""
+
+    # Safely check if DeepSpeed Zero3 is enabled
+    is_zero3 = getattr(getattr(trainer, "deepspeed", None), "is_zero3", False)
+
+    if is_zero3:
+        # Handle DeepSpeed Zero3 checkpointing
         state_dict = trainer.model_wrapped._zero3_consolidated_16bit_state_dict()
     else:
-        if trainer.args.use_lora:
+        # Handle LoRA saving
+        if getattr(trainer.args, "use_lora", False):
             state_dict = get_peft_state_maybe_zero_3(
                 trainer.model.named_parameters(), bias
             )
         else:
             state_dict = trainer.model.state_dict()
-    if trainer.args.should_save and trainer.args.local_rank == 0:
+
+    # Save only from rank 0
+    if trainer.args.should_save and (not hasattr(trainer.args, "local_rank") or trainer.args.local_rank == 0):
         trainer._save(output_dir, state_dict=state_dict)
 
 
