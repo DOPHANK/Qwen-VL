@@ -325,10 +325,11 @@ def train():
             model_args.model_name_or_path,
             config=config,
             cache_dir=training_args.cache_dir,
-            device_map=device_map,
+            device_map="auto",
             trust_remote_code=True,
             torch_dtype=compute_dtype,
             quantization_config=None,
+            low_cpu_mem_usage=True
         )
 
     if not training_args.use_lora:
@@ -353,10 +354,6 @@ def train():
         else:
             modules_to_save = ["wte", "lm_head"]
 
-        # Patch LoRA target modules for Qwen2.5-VL
-        if lora_args.lora_target_modules is None or len(lora_args.lora_target_modules) == 0:
-            lora_args.lora_target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "dense"]
-
         lora_config = LoraConfig(
             r=lora_args.lora_r,
             lora_alpha=lora_args.lora_alpha,
@@ -376,6 +373,8 @@ def train():
 
         if training_args.gradient_checkpointing:
             model.enable_input_require_grads()
+
+        model.print_trainable_parameters()
 
     # Load data
     data_module = make_supervised_data_module(
