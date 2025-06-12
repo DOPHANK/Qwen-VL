@@ -120,7 +120,14 @@ def rank0_print(*args):
 #    if trainer.args.should_save and trainer.args.local_rank == 0:
 #        trainer._save(output_dir, state_dict=state_dict)
 
-from peft.utils import get_peft_state_maybe_zero_3
+def get_peft_state_maybe_zero_3(named_params, bias):
+    """Manually extract LoRA adapter weights if get_peft_state_maybe_zero_3 is missing."""
+    from collections import OrderedDict
+    to_return = OrderedDict()
+    for k, v in named_params:
+        if "lora_" in k or (bias == "all" and "bias" in k):
+            to_return[k] = v.detach().cpu()
+    return to_return
 
 def safe_save_model_for_hf_trainer(trainer: transformers.Trainer, output_dir: str, bias="none"):
     """Collects the state dict and dumps to disk, supporting LoRA and DeepSpeed Zero3."""
