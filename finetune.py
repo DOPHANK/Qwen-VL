@@ -9,7 +9,6 @@ import os
 from typing import Dict, Optional, List
 import torch
 from torch.utils.data import Dataset
-import deepspeed
 from deepspeed import zero
 from deepspeed.runtime.zero.partition_parameters import ZeroParamStatus
 import transformers
@@ -295,10 +294,11 @@ def train():
     ddp = world_size != 1
     if lora_args.q_lora:
         device_map = {"": int(os.environ.get("LOCAL_RANK") or 0)} if ddp else None
-        if len(training_args.fsdp) > 0 or deepspeed.is_deepspeed_zero3_enabled():
+        if len(training_args.fsdp) > 0 or training_args.deepspeed is not None:
             logging.warning(
                 "FSDP or ZeRO3 are not incompatible with QLoRA."
             )
+
 
     # Set RoPE scaling factor
     config = transformers.AutoConfig.from_pretrained(
