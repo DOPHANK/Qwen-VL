@@ -9,6 +9,7 @@ import os
 from typing import Dict, Optional, List
 import torch
 from torch.utils.data import Dataset
+import deepspeed
 from deepspeed import zero
 from deepspeed.runtime.zero.partition_parameters import ZeroParamStatus
 import transformers
