@@ -328,11 +328,7 @@ def train():
             device_map=device_map,
             trust_remote_code=True,
             torch_dtype=compute_dtype,
-            quantization_config=GPTQConfig(
-                bits=4, disable_exllama=True
-            )
-            if training_args.use_lora and lora_args.q_lora
-            else None,
+            quantization_config=None,
         )
 
     if not training_args.use_lora:
