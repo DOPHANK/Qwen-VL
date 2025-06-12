@@ -371,6 +371,10 @@ def train():
                 model, use_gradient_checkpointing=training_args.gradient_checkpointing
             )
 
+        for name, module in model.named_modules():
+            if isinstance(module, torch.nn.Linear):
+                print(name)
+
         model = get_peft_model(model, lora_config)
 
         if training_args.gradient_checkpointing:
