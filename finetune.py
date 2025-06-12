@@ -339,8 +339,9 @@ def train():
         use_fast=False,
         trust_remote_code=True,
     )
-    tokenizer.pad_token_id = tokenizer.eod_id
-
+    #tokenizer.pad_token_id = tokenizer.eod_id
+    tokenizer.pad_token_id = tokenizer.eos_token_id
+    
     if training_args.use_lora:
         if lora_args.q_lora or "chat" in model_args.model_name_or_path.lower():
             modules_to_save = None
