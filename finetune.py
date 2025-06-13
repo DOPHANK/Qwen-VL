@@ -330,8 +330,10 @@ def make_supervised_data_module(
     #)
     if "VL" in model_args.model_name_or_path:
         dataset_cls = MultimodalSupervisedDataset
+        print(f"Initialize {dataset_cls}...")
     else:
         dataset_cls = LazySupervisedDataset if data_args.lazy_preprocess else SupervisedDataset
+        print(f"Initialize {dataset_cls}...")
 
     rank0_print("Loading data...")
 
