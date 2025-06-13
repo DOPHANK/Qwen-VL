@@ -580,9 +580,14 @@ def train():
             )
 
         model = get_peft_model(model, lora_config)
+        for name, _ in model.named_modules():
+            print(name)
 
         if training_args.gradient_checkpointing:
             model.enable_input_require_grads()
+
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        model = model.to(device)
 
         model.print_trainable_parameters()
     
@@ -603,6 +608,8 @@ def train():
         data_args=data_args,
         max_len=training_args.model_max_length
     )
+
+    print("embed_tokens weight shape:", model.base_model.model.embed_tokens.weight.shape)
 
     # Start trainner
     trainer = Trainer(
