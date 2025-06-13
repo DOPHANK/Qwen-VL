@@ -456,6 +456,18 @@ def make_supervised_data_module(
 
     return dict(train_dataset=train_dataset, eval_dataset=eval_dataset)
 
+def data_collator(batch):
+    input_ids = torch.stack([x["input_ids"] for x in batch])
+    attention_mask = torch.stack([x["attention_mask"] for x in batch])
+    pixel_values = torch.stack([x["pixel_values"] for x in batch])
+    labels = torch.stack([x["labels"] for x in batch])
+    
+    return {
+        "input_ids": input_ids,
+        "attention_mask": attention_mask,
+        "pixel_values": pixel_values,
+        "labels": labels,
+    }
 
 def train():
     global local_rank
@@ -608,9 +620,17 @@ def train():
     )
 
     # Start trainner
+    #trainer = Trainer(
+    #    model=model, tokenizer=tokenizer, args=training_args, **data_module,
+    #)
     trainer = Trainer(
-        model=model, tokenizer=tokenizer, args=training_args, **data_module,
+        model=model,
+        tokenizer=tokenizer,
+        args=training_args,
+        data_collator=data_collator,
+        **data_module,
     )
+
 
     trainer.train()
     trainer.save_state()
