@@ -286,9 +286,10 @@ class SupervisedDataset(Dataset):
             max_length=self.max_len
         )
         
-        input_ids = inputs["input_ids"].squeeze(0).long()
+        input_ids = inputs["input_ids"][0].long()
         attention_mask = inputs["attention_mask"][0]
         pixel_values = inputs["pixel_values"][0]
+
     
         labels = input_ids.clone()
         labels[labels == self.tokenizer.pad_token_id] = -100
@@ -457,17 +458,13 @@ def make_supervised_data_module(
     return dict(train_dataset=train_dataset, eval_dataset=eval_dataset)
 
 def data_collator(batch):
-    input_ids = torch.stack([x["input_ids"] for x in batch])
-    attention_mask = torch.stack([x["attention_mask"] for x in batch])
-    pixel_values = torch.stack([x["pixel_values"] for x in batch])
-    labels = torch.stack([x["labels"] for x in batch])
-    
     return {
-        "input_ids": input_ids,
-        "attention_mask": attention_mask,
-        "pixel_values": pixel_values,
-        "labels": labels,
+        "input_ids": torch.stack([b["input_ids"] for b in batch]),           # (B, T)
+        "attention_mask": torch.stack([b["attention_mask"] for b in batch]), # (B, T)
+        "pixel_values": torch.stack([b["pixel_values"] for b in batch]),     # (B, C, H, W)
+        "labels": torch.stack([b["labels"] for b in batch]),                 # (B, T)
     }
+
 
 def train():
     global local_rank
