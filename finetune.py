@@ -17,6 +17,8 @@ from transformers.trainer_pt_utils import LabelSmoother
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 from accelerate.utils import DistributedType
 from transformers import Qwen2_5_VLForConditionalGeneration
+from PIL import Image
+from transformers import AutoProcessor
 
 IGNORE_TOKEN_ID = LabelSmoother.ignore_index
 
@@ -211,66 +213,154 @@ def preprocess(
     )
 
 
+#class SupervisedDataset(Dataset):
+#    """Dataset for supervised fine-tuning."""
+#
+#    def __init__(self, raw_data, tokenizer: transformers.PreTrainedTokenizer, max_len: int):
+#        super(SupervisedDataset, self).__init__()
+#        
+#        rank0_print("Formatting inputs...")
+#
+#        #Add-in
+#        if isinstance(raw_data, str):  # if a path, load it
+#            with open(raw_data, "r", encoding="utf-8") as f:
+#                raw_data = json.load(f)
+#        assert isinstance(raw_data, list), "Expected list of dicts in raw_data"
+#
+#        sources = [example["conversations"] for example in raw_data]
+#        data_dict = preprocess(sources, tokenizer, max_len)
+#
+#        self.input_ids = data_dict["input_ids"]
+#        self.labels = data_dict["labels"]
+#        self.attention_mask = data_dict["attention_mask"]
+#
+#    def __len__(self):
+#        return len(self.input_ids)
+#
+#    def __getitem__(self, i) -> Dict[str, torch.Tensor]:
+#        return dict(
+#            input_ids=self.input_ids[i],
+#            labels=self.labels[i],
+#            attention_mask=self.attention_mask[i],
+#        )
+
 class SupervisedDataset(Dataset):
     """Dataset for supervised fine-tuning."""
-
-    def __init__(self, raw_data, tokenizer: transformers.PreTrainedTokenizer, max_len: int):
+    
+    def __init__(self, raw_data, processor, tokenizer, max_len):
         super(SupervisedDataset, self).__init__()
-        
+
         rank0_print("Formatting inputs...")
-
-        #Add-in
-        if isinstance(raw_data, str):  # if a path, load it
-            with open(raw_data, "r", encoding="utf-8") as f:
-                raw_data = json.load(f)
-        assert isinstance(raw_data, list), "Expected list of dicts in raw_data"
-
-        sources = [example["conversations"] for example in raw_data]
-        data_dict = preprocess(sources, tokenizer, max_len)
-
-        self.input_ids = data_dict["input_ids"]
-        self.labels = data_dict["labels"]
-        self.attention_mask = data_dict["attention_mask"]
-
-    def __len__(self):
-        return len(self.input_ids)
-
-    def __getitem__(self, i) -> Dict[str, torch.Tensor]:
-        return dict(
-            input_ids=self.input_ids[i],
-            labels=self.labels[i],
-            attention_mask=self.attention_mask[i],
-        )
-
-
-class LazySupervisedDataset(Dataset):
-    """Dataset for supervised fine-tuning."""
-
-    def __init__(self, raw_data, tokenizer: transformers.PreTrainedTokenizer, max_len: int):
-        super(LazySupervisedDataset, self).__init__()
+        
+        self.processor = processor
         self.tokenizer = tokenizer
         self.max_len = max_len
+        self.samples = []
+
+        if isinstance(raw_data, str):
+            with open(raw_data, "r", encoding="utf-8") as f:
+                raw_data = json.load(f)
+
+        for example in raw_data:
+            self.samples.append(example)
+
+    def __len__(self):
+        return len(self.samples)
+
+    def __getitem__(self, idx):
+        example = self.samples[idx]
+        prompt = example["conversations"][1]["value"]
+        image_path = example["conversations"][0]["value"].split("<img>")[1].split("</img>")[0]
+        image = Image.open(image_path).convert("RGB")
+
+        inputs = self.processor(prompt=prompt, images=image, return_tensors="pt", padding="max_length", truncation=True, max_length=self.max_len)
+
+        input_ids = inputs["input_ids"].squeeze(0)
+        attention_mask = inputs["attention_mask"].squeeze(0)
+        pixel_values = inputs["pixel_values"].squeeze(0)
+
+        labels = input_ids.clone()
+        labels[labels == self.processor.tokenizer.pad_token_id] = -100
+
+        return {
+            "input_ids": input_ids,
+            "attention_mask": attention_mask,
+            "pixel_values": pixel_values,
+            "labels": labels
+        }
+
+
+#class LazySupervisedDataset(Dataset):
+#    """Dataset for supervised fine-tuning."""
+#
+#    def __init__(self, raw_data, tokenizer: transformers.PreTrainedTokenizer, max_len: int):
+#        super(LazySupervisedDataset, self).__init__()
+#        self.tokenizer = tokenizer
+#        self.max_len = max_len
+#
+#        rank0_print("Formatting inputs...Skip in lazy mode")
+#        self.tokenizer = tokenizer
+#        self.raw_data = raw_data
+#        self.cached_data_dict = {}
+#
+#    def __len__(self):
+#        return len(self.raw_data)
+#
+#    def __getitem__(self, i) -> Dict[str, torch.Tensor]:
+#        if i in self.cached_data_dict:
+#            return self.cached_data_dict[i]
+#
+#        ret = preprocess([self.raw_data[i]["conversations"]], self.tokenizer, self.max_len)
+#        ret = dict(
+#            input_ids=ret["input_ids"][0],
+#            labels=ret["labels"][0],
+#            attention_mask=ret["attention_mask"][0],
+#        )
+#        self.cached_data_dict[i] = ret
+#
+#        return ret
+class LazySupervisedDataset(Dataset):
+    """Dataset for supervised fine-tuning."""
+    
+    def __init__(self, raw_data, processor, max_len: int):
+        super(LazySupervisedDataset, self).__init__()
 
         rank0_print("Formatting inputs...Skip in lazy mode")
-        self.tokenizer = tokenizer
+        
+        self.processor = processor
+        self.max_len = max_len
         self.raw_data = raw_data
         self.cached_data_dict = {}
 
     def __len__(self):
         return len(self.raw_data)
 
-    def __getitem__(self, i) -> Dict[str, torch.Tensor]:
+    def __getitem__(self, i):
         if i in self.cached_data_dict:
             return self.cached_data_dict[i]
 
-        ret = preprocess([self.raw_data[i]["conversations"]], self.tokenizer, self.max_len)
-        ret = dict(
-            input_ids=ret["input_ids"][0],
-            labels=ret["labels"][0],
-            attention_mask=ret["attention_mask"][0],
-        )
-        self.cached_data_dict[i] = ret
+        example = self.raw_data[i]
+        prompt = example["conversations"][1]["value"]
+        image_path = example["conversations"][0]["value"].split("<img>")[1].split("</img>")[0]
+        image = Image.open(image_path).convert("RGB")
 
+        inputs = self.processor(prompt=prompt, images=image, return_tensors="pt", padding="max_length", truncation=True, max_length=self.max_len)
+
+        input_ids = inputs["input_ids"].squeeze(0)
+        attention_mask = inputs["attention_mask"].squeeze(0)
+        pixel_values = inputs["pixel_values"].squeeze(0)
+
+        labels = input_ids.clone()
+        labels[labels == self.processor.tokenizer.pad_token_id] = -100
+
+        ret = {
+            "input_ids": input_ids,
+            "attention_mask": attention_mask,
+            "pixel_values": pixel_values,
+            "labels": labels
+        }
+
+        self.cached_data_dict[i] = ret
         return ret
 
 
