@@ -365,7 +365,9 @@ class LazySupervisedDataset(Dataset):
 
 
 def make_supervised_data_module(
-    tokenizer: transformers.PreTrainedTokenizer, data_args, max_len,
+    tokenizer: transformers.PreTrainedTokenizer,
+    processor: transformers.ProcessorMixin,
+    data_args, max_len,
 ) -> Dict:
     """Make dataset and collator for supervised fine-tuning."""
     dataset_cls = (
@@ -577,7 +579,7 @@ def train():
         tokenizer=tokenizer,
         processor=processor,
         data_args=data_args,
-        training_args=training_args,
+        max_len=training_args.model_max_length
     )
 
     # Start trainner
