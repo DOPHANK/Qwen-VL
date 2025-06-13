@@ -563,8 +563,21 @@ def train():
         model.print_trainable_parameters()
 
     # Load data
+#    data_module = make_supervised_data_module(
+#        tokenizer=tokenizer, data_args=data_args, max_len=training_args.model_max_length
+#    )
+    
+    processor = AutoProcessor.from_pretrained(
+        model_args.model_name_or_path,
+        trust_remote_code=True,
+        cache_dir=training_args.cache_dir,
+    )
+
     data_module = make_supervised_data_module(
-        tokenizer=tokenizer, data_args=data_args, max_len=training_args.model_max_length
+        tokenizer=tokenizer,
+        processor=processor,
+        data_args=data_args,
+        training_args=training_args,
     )
 
     # Start trainner
