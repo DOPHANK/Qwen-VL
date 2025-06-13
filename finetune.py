@@ -278,15 +278,14 @@ class SupervisedDataset(Dataset):
         prompt += "\n" + example["conversations"][1]["value"]
     
         inputs = self.processor(
-            text=[prompt],               # ✅ must be list
-            images=[image],             # ✅ must be list
+            text=[prompt],
+            images=[image],
             return_tensors="pt",
             padding="max_length",
             truncation=True,
             max_length=self.max_len
         )
     
-        # ✅ DO NOT squeeze or index incorrectly
         input_ids = inputs["input_ids"][0]
         attention_mask = inputs["attention_mask"][0]
         pixel_values = inputs["pixel_values"][0]
