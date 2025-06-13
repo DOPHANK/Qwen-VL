@@ -580,8 +580,6 @@ def train():
             )
 
         model = get_peft_model(model, lora_config)
-        for name, _ in model.named_modules():
-            print(name)
 
         if training_args.gradient_checkpointing:
             model.enable_input_require_grads()
@@ -609,7 +607,11 @@ def train():
         max_len=training_args.model_max_length
     )
 
-    print("embed_tokens weight shape:", model.base_model.model.embed_tokens.weight.shape)
+    # See full structure
+    for name, module in model.named_modules():
+        if "embed" in name:
+            print(name, type(module))
+
 
     # Start trainner
     trainer = Trainer(
