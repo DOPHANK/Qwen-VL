@@ -268,39 +268,39 @@ class SupervisedDataset(Dataset):
         return len(self.samples)
 
     def __getitem__(self, idx):
-        conv = self.samples[idx]["conversations"]
-
-        # Parse image path
-        img_path = conv[0]["value"].split("<img>")[1].split("</img>")[0]
-        image = Image.open(img_path).convert("RGB")
-
-        # Replace <img> tag with <image> token
-        prompt = conv[0]["value"].replace(f"<img>{img_path}</img>", "<image>")
-        prompt += "\n" + conv[1]["value"]
-
-        # Process with multimodal processor
+        example = self.samples[idx]
+        prompt = example["conversations"][1]["value"]
+        image_path = example["conversations"][0]["value"].split("<img>")[1].split("</img>")[0]
+        image = Image.open(image_path).convert("RGB")
+    
+        # Replace <img>path</img> with <image>
+        prompt = example["conversations"][0]["value"].replace(f"<img>{image_path}</img>", "<image>")
+        prompt += "\n" + example["conversations"][1]["value"]
+    
         inputs = self.processor(
-            text=[prompt],
-            images=[image],
+            text=[prompt],               # ✅ must be list
+            images=[image],             # ✅ must be list
             return_tensors="pt",
             padding="max_length",
             truncation=True,
             max_length=self.max_len
         )
-
-        input_ids = inputs["input_ids"]
-        attention_mask = inputs["attention_mask"]
-        pixel_values = inputs["pixel_values"]
-
+    
+        # ✅ DO NOT squeeze or index incorrectly
+        input_ids = inputs["input_ids"][0]
+        attention_mask = inputs["attention_mask"][0]
+        pixel_values = inputs["pixel_values"][0]
+    
         labels = input_ids.clone()
         labels[labels == self.tokenizer.pad_token_id] = -100
-
+    
         return {
             "input_ids": input_ids,
             "attention_mask": attention_mask,
             "pixel_values": pixel_values,
-            "labels": labels,
+            "labels": labels
         }
+
 
 
 #class LazySupervisedDataset(Dataset):
