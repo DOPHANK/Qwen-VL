@@ -584,6 +584,8 @@ def train():
 
         model.print_trainable_parameters()
 
+    model = torch.nn.DataParallel(model)
+
     # Load data
 #    data_module = make_supervised_data_module(
 #        tokenizer=tokenizer, data_args=data_args, max_len=training_args.model_max_length
