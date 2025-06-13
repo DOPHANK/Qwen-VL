@@ -607,19 +607,6 @@ def train():
         max_len=training_args.model_max_length
     )
 
-    # See full structure
-    print("embed_tokens:", type(model.base_model.model.embed_tokens))
-    if hasattr(model.base_model.model.embed_tokens, "weight"):
-        print("embed_tokens.weight shape:", model.base_model.model.embed_tokens.weight.shape)
-    else:
-        print("embed_tokens has no weight")
-
-    model = AutoModelForCausalLM.from_pretrained("Qwen/Qwen2.5-VL-3B-Instruct")
-    print("embed_tokens AutoModelForCausalLM:", type(model.model.embed_tokens))
-    print("weight shape AutoModelForCausalLM:", model.model.embed_tokens.weight.shape)
-
-
-
     # Start trainner
     trainer = Trainer(
         model=model, tokenizer=tokenizer, args=training_args, **data_module,
