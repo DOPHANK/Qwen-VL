@@ -402,18 +402,15 @@ def train():
         trust_remote_code=True,
         torch_dtype=compute_dtype,
         quantization_config=None,
-        low_cpu_mem_usage=True
+        low_cpu_mem_usage=True,
+        force_download=True,
     )
-    
-    if training_args.deepspeed is None:
-        model_kwargs["device_map"] = "auto"
-    
+
     model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
         model_args.model_name_or_path,
         **model_kwargs
     )
-
-
+    
     if not training_args.use_lora:
         if training_args.fix_vit and hasattr(model,'transformer') and hasattr(model.transformer,'visual'):
             model.transformer.visual.requires_grad_(False)
