@@ -285,13 +285,15 @@ class SupervisedDataset(Dataset):
             truncation=True,
             max_length=self.max_len
         )
-    
-        input_ids = inputs["input_ids"][0]
+        
+        input_ids = inputs["input_ids"].squeeze(0).long()
         attention_mask = inputs["attention_mask"][0]
         pixel_values = inputs["pixel_values"][0]
     
         labels = input_ids.clone()
         labels[labels == self.tokenizer.pad_token_id] = -100
+
+        print("input_ids", input_ids.shape)
     
         return {
             "input_ids": input_ids,
