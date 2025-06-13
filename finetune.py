@@ -583,9 +583,6 @@ def train():
             model.enable_input_require_grads()
 
         model.print_trainable_parameters()
-
-    if hasattr(model, "module"):
-        model = model.module
     
     # Load data
 #    data_module = make_supervised_data_module(
