@@ -288,9 +288,9 @@ class SupervisedDataset(Dataset):
             max_length=self.max_len
         )
 
-        input_ids = inputs["input_ids"].squeeze(0)
-        attention_mask = inputs["attention_mask"].squeeze(0)
-        pixel_values = inputs["pixel_values"].squeeze(0)
+        input_ids = inputs["input_ids"]
+        attention_mask = inputs["attention_mask"]
+        pixel_values = inputs["pixel_values"]
 
         labels = input_ids.clone()
         labels[labels == self.tokenizer.pad_token_id] = -100
