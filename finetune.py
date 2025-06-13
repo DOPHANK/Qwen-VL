@@ -273,7 +273,16 @@ class SupervisedDataset(Dataset):
         image_path = example["conversations"][0]["value"].split("<img>")[1].split("</img>")[0]
         image = Image.open(image_path).convert("RGB")
 
-        inputs = self.processor(prompt=prompt, images=image, return_tensors="pt", padding="max_length", truncation=True, max_length=self.max_len)
+        #inputs = self.processor(prompt=prompt, images=image, return_tensors="pt", padding="max_length", truncation=True, max_length=self.max_len)
+        inputs = self.processor(
+            text=prompt,
+            images=image,
+            return_tensors="pt",
+            padding="max_length",
+            truncation=True,
+            max_length=self.max_len
+        )
+
 
         input_ids = inputs["input_ids"].squeeze(0)
         attention_mask = inputs["attention_mask"].squeeze(0)
@@ -344,7 +353,15 @@ class LazySupervisedDataset(Dataset):
         image_path = example["conversations"][0]["value"].split("<img>")[1].split("</img>")[0]
         image = Image.open(image_path).convert("RGB")
 
-        inputs = self.processor(prompt=prompt, images=image, return_tensors="pt", padding="max_length", truncation=True, max_length=self.max_len)
+        #inputs = self.processor(prompt=prompt, images=image, return_tensors="pt", padding="max_length", truncation=True, max_length=self.max_len)
+        inputs = self.processor(
+            text=prompt,
+            images=image,
+            return_tensors="pt",
+            padding="max_length",
+            truncation=True,
+            max_length=self.max_len
+        )
 
         input_ids = inputs["input_ids"].squeeze(0)
         attention_mask = inputs["attention_mask"].squeeze(0)
