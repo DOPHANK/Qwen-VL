@@ -391,7 +391,14 @@ def make_supervised_data_module(
     else:
         train_json = json.load(open(data_args.data_path, "r"))
 
-    train_dataset = dataset_cls(train_json, tokenizer=tokenizer, max_len=max_len)
+    #train_dataset = dataset_cls(train_json, tokenizer=tokenizer, max_len=max_len)
+    train_dataset = dataset_cls(
+        train_json,
+        processor=processor,
+        tokenizer=tokenizer,
+        max_len=max_len
+    )
+
 
     if data_args.eval_data_path:
         #eval_json = json.load(open(data_args.eval_data_path, "r"))
@@ -412,7 +419,14 @@ def make_supervised_data_module(
         else:
             eval_json = json.load(open(data_args.eval_data_path, "r"))
         
-        eval_dataset = dataset_cls(eval_json, tokenizer=tokenizer, max_len=max_len)
+        #eval_dataset = dataset_cls(eval_json, tokenizer=tokenizer, max_len=max_len)
+        eval_dataset = dataset_cls(
+            eval_json,
+            processor=processor,
+            tokenizer=tokenizer,
+            max_len=max_len
+        )
+
     else:
         eval_dataset = None
 
