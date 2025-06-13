@@ -291,6 +291,9 @@ class SupervisedDataset(Dataset):
         labels = input_ids.clone()
         labels[labels == self.processor.tokenizer.pad_token_id] = -100
 
+        print("input_ids:", input_ids.shape)
+        print("pixel_values:", pixel_values.shape)
+
         return {
             "input_ids": input_ids,
             "attention_mask": attention_mask,
