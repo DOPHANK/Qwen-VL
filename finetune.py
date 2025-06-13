@@ -17,8 +17,6 @@ from transformers.trainer_pt_utils import LabelSmoother
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 from accelerate.utils import DistributedType
 from transformers import Qwen2_5_VLForConditionalGeneration
-from PIL import Image
-from transformers import AutoProcessor
 
 IGNORE_TOKEN_ID = LabelSmoother.ignore_index
 
@@ -213,184 +211,71 @@ def preprocess(
     )
 
 
-#class SupervisedDataset(Dataset):
-#    """Dataset for supervised fine-tuning."""
-#
-#    def __init__(self, raw_data, tokenizer: transformers.PreTrainedTokenizer, max_len: int):
-#        super(SupervisedDataset, self).__init__()
-#        
-#        rank0_print("Formatting inputs...")
-#
-#        #Add-in
-#        if isinstance(raw_data, str):  # if a path, load it
-#            with open(raw_data, "r", encoding="utf-8") as f:
-#                raw_data = json.load(f)
-#        assert isinstance(raw_data, list), "Expected list of dicts in raw_data"
-#
-#        sources = [example["conversations"] for example in raw_data]
-#        data_dict = preprocess(sources, tokenizer, max_len)
-#
-#        self.input_ids = data_dict["input_ids"]
-#        self.labels = data_dict["labels"]
-#        self.attention_mask = data_dict["attention_mask"]
-#
-#    def __len__(self):
-#        return len(self.input_ids)
-#
-#    def __getitem__(self, i) -> Dict[str, torch.Tensor]:
-#        return dict(
-#            input_ids=self.input_ids[i],
-#            labels=self.labels[i],
-#            attention_mask=self.attention_mask[i],
-#        )
-
 class SupervisedDataset(Dataset):
     """Dataset for supervised fine-tuning."""
-    
-    def __init__(self, raw_data, processor, tokenizer, max_len):
+
+    def __init__(self, raw_data, tokenizer: transformers.PreTrainedTokenizer, max_len: int):
         super(SupervisedDataset, self).__init__()
-
-        rank0_print("Formatting inputs...")
         
-        self.processor = processor
-        self.tokenizer = tokenizer
-        self.max_len = max_len
-        self.samples = []
+        rank0_print("Formatting inputs...")
 
-        if isinstance(raw_data, str):
+        #Add-in
+        if isinstance(raw_data, str):  # if a path, load it
             with open(raw_data, "r", encoding="utf-8") as f:
                 raw_data = json.load(f)
+        assert isinstance(raw_data, list), "Expected list of dicts in raw_data"
 
-        for example in raw_data:
-            self.samples.append(example)
+        sources = [example["conversations"] for example in raw_data]
+        data_dict = preprocess(sources, tokenizer, max_len)
+
+        self.input_ids = data_dict["input_ids"]
+        self.labels = data_dict["labels"]
+        self.attention_mask = data_dict["attention_mask"]
 
     def __len__(self):
-        return len(self.samples)
+        return len(self.input_ids)
 
-    def __getitem__(self, idx):
-        example = self.samples[idx]
-        prompt = example["conversations"][1]["value"]
-        image_path = example["conversations"][0]["value"].split("<img>")[1].split("</img>")[0]
-        image = Image.open(image_path).convert("RGB")
-    
-        # Replace <img>path</img> with <image>
-        prompt = example["conversations"][0]["value"].replace(f"<img>{image_path}</img>", "<image>")
-        prompt += "\n" + example["conversations"][1]["value"]
-    
-        inputs = self.processor(
-            text=[prompt],
-            images=[image],
-            return_tensors="pt",
-            padding="max_length",
-            truncation=True,
-            max_length=self.max_len
+    def __getitem__(self, i) -> Dict[str, torch.Tensor]:
+        return dict(
+            input_ids=self.input_ids[i],
+            labels=self.labels[i],
+            attention_mask=self.attention_mask[i],
         )
-        
-        input_ids = inputs["input_ids"][0].long()
-        attention_mask = inputs["attention_mask"][0]
-        pixel_values = inputs["pixel_values"][0]
-
-    
-        labels = input_ids.clone()
-        labels[labels == self.tokenizer.pad_token_id] = -100
-
-        print("input_ids", input_ids.shape)
-    
-        return {
-            "input_ids": input_ids,
-            "attention_mask": attention_mask,
-            "pixel_values": pixel_values,
-            "labels": labels
-        }
 
 
-
-#class LazySupervisedDataset(Dataset):
-#    """Dataset for supervised fine-tuning."""
-#
-#    def __init__(self, raw_data, tokenizer: transformers.PreTrainedTokenizer, max_len: int):
-#        super(LazySupervisedDataset, self).__init__()
-#        self.tokenizer = tokenizer
-#        self.max_len = max_len
-#
-#        rank0_print("Formatting inputs...Skip in lazy mode")
-#        self.tokenizer = tokenizer
-#        self.raw_data = raw_data
-#        self.cached_data_dict = {}
-#
-#    def __len__(self):
-#        return len(self.raw_data)
-#
-#    def __getitem__(self, i) -> Dict[str, torch.Tensor]:
-#        if i in self.cached_data_dict:
-#            return self.cached_data_dict[i]
-#
-#        ret = preprocess([self.raw_data[i]["conversations"]], self.tokenizer, self.max_len)
-#        ret = dict(
-#            input_ids=ret["input_ids"][0],
-#            labels=ret["labels"][0],
-#            attention_mask=ret["attention_mask"][0],
-#        )
-#        self.cached_data_dict[i] = ret
-#
-#        return ret
 class LazySupervisedDataset(Dataset):
     """Dataset for supervised fine-tuning."""
-    
-    def __init__(self, raw_data, processor, max_len: int):
+
+    def __init__(self, raw_data, tokenizer: transformers.PreTrainedTokenizer, max_len: int):
         super(LazySupervisedDataset, self).__init__()
+        self.tokenizer = tokenizer
+        self.max_len = max_len
 
         rank0_print("Formatting inputs...Skip in lazy mode")
-        
-        self.processor = processor
-        self.max_len = max_len
+        self.tokenizer = tokenizer
         self.raw_data = raw_data
         self.cached_data_dict = {}
 
     def __len__(self):
         return len(self.raw_data)
 
-    def __getitem__(self, i):
+    def __getitem__(self, i) -> Dict[str, torch.Tensor]:
         if i in self.cached_data_dict:
             return self.cached_data_dict[i]
 
-        example = self.raw_data[i]
-        prompt = example["conversations"][1]["value"]
-        image_path = example["conversations"][0]["value"].split("<img>")[1].split("</img>")[0]
-        image = Image.open(image_path).convert("RGB")
-
-        #inputs = self.processor(prompt=prompt, images=image, return_tensors="pt", padding="max_length", truncation=True, max_length=self.max_len)
-        inputs = self.processor(
-            text=prompt,
-            images=image,
-            return_tensors="pt",
-            padding="max_length",
-            truncation=True,
-            max_length=self.max_len
+        ret = preprocess([self.raw_data[i]["conversations"]], self.tokenizer, self.max_len)
+        ret = dict(
+            input_ids=ret["input_ids"][0],
+            labels=ret["labels"][0],
+            attention_mask=ret["attention_mask"][0],
         )
-
-        input_ids = inputs["input_ids"].squeeze(0)
-        attention_mask = inputs["attention_mask"].squeeze(0)
-        pixel_values = inputs["pixel_values"].squeeze(0)
-
-        labels = input_ids.clone()
-        labels[labels == self.processor.tokenizer.pad_token_id] = -100
-
-        ret = {
-            "input_ids": input_ids,
-            "attention_mask": attention_mask,
-            "pixel_values": pixel_values,
-            "labels": labels
-        }
-
         self.cached_data_dict[i] = ret
+
         return ret
 
 
 def make_supervised_data_module(
-    tokenizer: transformers.PreTrainedTokenizer,
-    processor: transformers.ProcessorMixin,
-    data_args, max_len,
+    tokenizer: transformers.PreTrainedTokenizer, data_args, max_len,
 ) -> Dict:
     """Make dataset and collator for supervised fine-tuning."""
     dataset_cls = (
@@ -416,14 +301,7 @@ def make_supervised_data_module(
     else:
         train_json = json.load(open(data_args.data_path, "r"))
 
-    #train_dataset = dataset_cls(train_json, tokenizer=tokenizer, max_len=max_len)
-    train_dataset = dataset_cls(
-        train_json,
-        processor=processor,
-        tokenizer=tokenizer,
-        max_len=max_len
-    )
-
+    train_dataset = dataset_cls(train_json, tokenizer=tokenizer, max_len=max_len)
 
     if data_args.eval_data_path:
         #eval_json = json.load(open(data_args.eval_data_path, "r"))
@@ -444,26 +322,11 @@ def make_supervised_data_module(
         else:
             eval_json = json.load(open(data_args.eval_data_path, "r"))
         
-        #eval_dataset = dataset_cls(eval_json, tokenizer=tokenizer, max_len=max_len)
-        eval_dataset = dataset_cls(
-            eval_json,
-            processor=processor,
-            tokenizer=tokenizer,
-            max_len=max_len
-        )
-
+        eval_dataset = dataset_cls(eval_json, tokenizer=tokenizer, max_len=max_len)
     else:
         eval_dataset = None
 
     return dict(train_dataset=train_dataset, eval_dataset=eval_dataset)
-
-def data_collator(batch):
-    return {
-        "input_ids": torch.stack([b["input_ids"] for b in batch]),           # (B, T)
-        "attention_mask": torch.stack([b["attention_mask"] for b in batch]), # (B, T)
-        "pixel_values": torch.stack([b["pixel_values"] for b in batch]),     # (B, C, H, W)
-        "labels": torch.stack([b["labels"] for b in batch]),                 # (B, T)
-    }
 
 
 def train():
@@ -577,7 +440,7 @@ def train():
             r=lora_args.lora_r,
             lora_alpha=lora_args.lora_alpha,
             #target_modules=lora_args.lora_target_modules,
-            target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
+            target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "dense"],
             lora_dropout=lora_args.lora_dropout,
             bias=lora_args.lora_bias,
             task_type="CAUSAL_LM",
@@ -593,41 +456,17 @@ def train():
         if training_args.gradient_checkpointing:
             model.enable_input_require_grads()
 
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        model = model.to(device)
-
         model.print_trainable_parameters()
-    
-    # Load data
-#    data_module = make_supervised_data_module(
-#        tokenizer=tokenizer, data_args=data_args, max_len=training_args.model_max_length
-#    )
-    
-    processor = AutoProcessor.from_pretrained(
-        model_args.model_name_or_path,
-        trust_remote_code=True,
-        cache_dir=training_args.cache_dir,
-    )
 
+    # Load data
     data_module = make_supervised_data_module(
-        tokenizer=tokenizer,
-        processor=processor,
-        data_args=data_args,
-        max_len=training_args.model_max_length
+        tokenizer=tokenizer, data_args=data_args, max_len=training_args.model_max_length
     )
 
     # Start trainner
-    #trainer = Trainer(
-    #    model=model, tokenizer=tokenizer, args=training_args, **data_module,
-    #)
     trainer = Trainer(
-        model=model,
-        tokenizer=tokenizer,
-        args=training_args,
-        data_collator=data_collator,
-        **data_module,
+        model=model, tokenizer=tokenizer, args=training_args, **data_module,
     )
-
 
     trainer.train()
     trainer.save_state()
