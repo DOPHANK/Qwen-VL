@@ -273,14 +273,66 @@ class LazySupervisedDataset(Dataset):
 
         return ret
 
+class MultimodalSupervisedDataset(Dataset):
+    def __init__(self, raw_data, processor, max_len):
+        self.processor = processor
+        self.max_len = max_len
+
+        if isinstance(raw_data, str):
+            with open(raw_data, "r", encoding="utf-8") as f:
+                raw_data = json.load(f)
+        assert isinstance(raw_data, list)
+
+        self.samples = raw_data
+
+    def __len__(self):
+        return len(self.samples)
+
+    def __getitem__(self, idx):
+        sample = self.samples[idx]
+        image_path = sample["conversations"][0]["value"].split("<img>")[1].split("</img>")[0]
+        image = Image.open(image_path).convert("RGB")
+
+        text_prompt = sample["conversations"][0]["value"].replace(
+            f"<img>{image_path}</img>", "<image>"
+        ) + "\n" + sample["conversations"][1]["value"]
+
+        inputs = self.processor(
+            text=[text_prompt],
+            images=[image],
+            return_tensors="pt",
+            padding="max_length",
+            truncation=True,
+            max_length=self.max_len,
+        )
+
+        input_ids = inputs["input_ids"].squeeze(0)
+        attention_mask = inputs["attention_mask"].squeeze(0)
+        pixel_values = inputs["pixel_values"].squeeze(0)
+
+        labels = input_ids.clone()
+        labels[labels == self.processor.tokenizer.pad_token_id] = -100
+
+        return {
+            "input_ids": input_ids,
+            "attention_mask": attention_mask,
+            "pixel_values": pixel_values,
+            "labels": labels
+        }
 
 def make_supervised_data_module(
     tokenizer: transformers.PreTrainedTokenizer, data_args, max_len,
 ) -> Dict:
     """Make dataset and collator for supervised fine-tuning."""
-    dataset_cls = (
-        LazySupervisedDataset if data_args.lazy_preprocess else SupervisedDataset
-    )
+
+    #dataset_cls = (
+    #    LazySupervisedDataset if data_args.lazy_preprocess else SupervisedDataset
+    #)
+    if "VL" in model_args.model_name_or_path:
+        dataset_cls = MultimodalSupervisedDataset
+    else:
+        dataset_cls = LazySupervisedDataset if data_args.lazy_preprocess else SupervisedDataset
+
     rank0_print("Loading data...")
 
     #train_json = json.load(open(data_args.data_path, "r"))
