@@ -568,7 +568,7 @@ def train():
             r=lora_args.lora_r,
             lora_alpha=lora_args.lora_alpha,
             #target_modules=lora_args.lora_target_modules,
-            target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "dense"],
+            target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
             lora_dropout=lora_args.lora_dropout,
             bias=lora_args.lora_bias,
             task_type="CAUSAL_LM",
@@ -608,9 +608,16 @@ def train():
     )
 
     # See full structure
-    for name, module in model.named_modules():
-        if "embed" in name:
-            print(name, type(module))
+    print("embed_tokens:", type(model.base_model.model.embed_tokens))
+    if hasattr(model.base_model.model.embed_tokens, "weight"):
+        print("embed_tokens.weight shape:", model.base_model.model.embed_tokens.weight.shape)
+    else:
+        print("embed_tokens has no weight")
+
+    model = AutoModelForCausalLM.from_pretrained("Qwen/Qwen2.5-VL-3B-Instruct")
+    print("embed_tokens AutoModelForCausalLM:", type(model.model.embed_tokens))
+    print("weight shape AutoModelForCausalLM:", model.model.embed_tokens.weight.shape)
+
 
 
     # Start trainner
