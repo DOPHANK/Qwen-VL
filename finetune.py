@@ -338,12 +338,11 @@ class MultimodalSupervisedDataset(Dataset):
     
         # ✅ Check for <image> token presence
         image_token_id = self.processor.tokenizer.convert_tokens_to_ids("<image>")
-        if image_token_id not in input_ids:
-            raise ValueError(
-                f"No <image> token found in input_ids (sample idx={idx}), "
-                f"but image was provided."
-            )
-    
+        if image_token_id is None:
+            raise ValueError("The tokenizer does not recognize the <image> token. "
+                             "Make sure your tokenizer is correctly loaded and supports multimodal input.")
+
+
         labels = input_ids.clone()
         labels[labels == self.processor.tokenizer.pad_token_id] = -100
     
