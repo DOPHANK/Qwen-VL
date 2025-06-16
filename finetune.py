@@ -325,7 +325,7 @@ class MultimodalSupervisedDataset(Dataset):
         
         # Manually process image
         image = image.resize((336, 336))
-        pixel_values = self.processor.image_processor(image, return_tensors="pt")["pixel_values"].squeeze(0)
+        pixel_values = self.processor.image_processor.preprocess(image, return_tensors="pt")["pixel_values"].squeeze(0)
 
         #input_ids = inputs["input_ids"].squeeze(0)
         #attention_mask = inputs["attention_mask"].squeeze(0)
