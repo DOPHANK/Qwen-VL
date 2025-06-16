@@ -297,6 +297,11 @@ class MultimodalSupervisedDataset(Dataset):
         image_path = sample["conversations"][0]["value"].split("<img>")[1].split("</img>")[0]
         image = Image.open(image_path).convert("RGB")
 
+        h, w = image.size
+        grid_h = h // 24
+        grid_w = w // 24
+        image_grid = [[1, grid_h, grid_w]]
+
         text_prompt = sample["conversations"][0]["value"].replace(
             f"<img>{image_path}</img>", "<image>"
         ) + "\n" + sample["conversations"][1]["value"]
@@ -321,7 +326,8 @@ class MultimodalSupervisedDataset(Dataset):
             "input_ids": input_ids,
             "attention_mask": attention_mask,
             "pixel_values": pixel_values,
-            "labels": labels
+            "labels": labels,
+            "image_grid_thw": image_grid,
         }
 
 from transformers import AutoProcessor
