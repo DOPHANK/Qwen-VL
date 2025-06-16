@@ -331,9 +331,9 @@ def train():
     model = transformers.AutoModelForCausalLM.from_pretrained(
         model_args.model_name_or_path,
         config=config,
+        trust_remote_code=True,
         cache_dir=training_args.cache_dir,
         device_map=device_map,
-        trust_remote_code=True,
         quantization_config=GPTQConfig(
             bits=4, disable_exllama=True
         )
@@ -348,11 +348,11 @@ def train():
                 model.transformer.visual.attn_pool.requires_grad_(True)
     tokenizer = transformers.AutoTokenizer.from_pretrained(
         model_args.model_name_or_path,
+        trust_remote_code=True,
         cache_dir=training_args.cache_dir,
         model_max_length=training_args.model_max_length,
         padding_side="right",
         use_fast=False,
-        trust_remote_code=True,
     )
     tokenizer.pad_token_id = tokenizer.eod_id
 
