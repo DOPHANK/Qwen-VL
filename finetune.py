@@ -274,7 +274,9 @@ class LazySupervisedDataset(Dataset):
         return ret
 
 class MultimodalSupervisedDataset(Dataset):
-    def __init__(self, raw_data, processor, max_len):
+    def __init__(self, raw_data, processor, max_len: int):
+        super(MultimodalSupervisedDataset, self).__init__()
+        
         self.processor = processor
         self.max_len = max_len
 
@@ -320,6 +322,8 @@ class MultimodalSupervisedDataset(Dataset):
             "labels": labels
         }
 
+from transformers import AutoProcessor
+
 def make_supervised_data_module(
     tokenizer: transformers.PreTrainedTokenizer, model_args, data_args, max_len,
 ) -> Dict:
@@ -328,12 +332,6 @@ def make_supervised_data_module(
     #dataset_cls = (
     #    LazySupervisedDataset if data_args.lazy_preprocess else SupervisedDataset
     #)
-    if "VL" in model_args.model_name_or_path:
-        dataset_cls = MultimodalSupervisedDataset
-        print(f"Initialize {dataset_cls}...")
-    else:
-        dataset_cls = LazySupervisedDataset if data_args.lazy_preprocess else SupervisedDataset
-        print(f"Initialize {dataset_cls}...")
 
     rank0_print("Loading data...")
 
@@ -355,8 +353,6 @@ def make_supervised_data_module(
     else:
         train_json = json.load(open(data_args.data_path, "r"))
 
-    train_dataset = dataset_cls(train_json, tokenizer=tokenizer, max_len=max_len)
-
     if data_args.eval_data_path:
         #eval_json = json.load(open(data_args.eval_data_path, "r"))
         if os.path.isdir(data_args.eval_data_path):
@@ -375,11 +371,25 @@ def make_supervised_data_module(
                                 print(f"Skipping {fname} due to: {e}")
         else:
             eval_json = json.load(open(data_args.eval_data_path, "r"))
-        
-        eval_dataset = dataset_cls(eval_json, tokenizer=tokenizer, max_len=max_len)
     else:
-        eval_dataset = None
+        eval_json = None
 
+    if "VL" in model_args.model_name_or_path:
+        dataset_cls = MultimodalSupervisedDataset
+        processor = AutoProcessor.from_pretrained(
+            model_args.model_name_or_path,
+            trust_remote_code=True
+        )
+        train_dataset = dataset_cls(train_json, processor=processor, max_len=max_len)
+        eval_dataset = dataset_cls(eval_json, processor=processor, max_len=max_len) if eval_json else None
+    else:
+        dataset_cls = LazySupervisedDataset if data_args.lazy_preprocess else SupervisedDataset        
+
+        train_dataset = dataset_cls(train_json, tokenizer=tokenizer, max_len=max_len)
+        eval_dataset = dataset_cls(eval_json, tokenizer=tokenizer, max_len=max_len) if eval_json else None
+
+    print(f"Using {dataset_cls}...")
+    
     return dict(train_dataset=train_dataset, eval_dataset=eval_dataset)
 
 
