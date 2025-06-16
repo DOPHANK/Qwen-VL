@@ -466,6 +466,7 @@ def train():
         **model_kwargs
     )
 
+    print(f"device: {model.device_map}")
     model.config.use_cache = False
     
     if not training_args.use_lora:
