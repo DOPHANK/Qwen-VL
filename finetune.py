@@ -17,6 +17,7 @@ from transformers.trainer_pt_utils import LabelSmoother
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 from accelerate.utils import DistributedType
 from transformers import Qwen2_5_VLForConditionalGeneration
+from PIL import Image
 
 IGNORE_TOKEN_ID = LabelSmoother.ignore_index
 
