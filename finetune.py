@@ -18,6 +18,7 @@ from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 from accelerate.utils import DistributedType
 from transformers import Qwen2_5_VLForConditionalGeneration
 from PIL import Image
+from transformers import BitsAndBytesConfig
 
 IGNORE_TOKEN_ID = LabelSmoother.ignore_index
 
@@ -466,12 +467,20 @@ def train():
     #        quantization_config=None,
     #        low_cpu_mem_usage=True
     #)
+
+    bnb_config = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_use_double_quant=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_compute_dtype=torch.float16,
+    )
+
     model_kwargs = dict(
         #config=config,
         cache_dir=training_args.cache_dir,
         trust_remote_code=True,
         torch_dtype=compute_dtype,
-        quantization_config=None,
+        quantization_config=bnb_config,
         low_cpu_mem_usage=True,
         force_download=True,
     )
