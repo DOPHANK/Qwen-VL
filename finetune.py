@@ -295,11 +295,8 @@ class MultimodalSupervisedDataset(Dataset):
     def __getitem__(self, idx):
         sample = self.samples[idx]
         image_path = sample["conversations"][0]["value"].split("<img>")[1].split("</img>")[0]
-        image = Image.open(image_path).convert("RGB")
-
-        h, w = image.size
-        grid_h = h // 24
-        grid_w = w // 24
+        image = Image.open(image_path).convert("RGB").resize((336, 336))
+        image_grid = [1, 14, 14]  # Fixed for Qwen2.5-VL
 
         text_prompt = sample["conversations"][0]["value"].replace(
             f"<img>{image_path}</img>", "<image>"
@@ -328,7 +325,7 @@ class MultimodalSupervisedDataset(Dataset):
             "attention_mask": attention_mask,
             "pixel_values": pixel_values,
             "labels": labels,
-            "image_grid_thw": [1, grid_h, grid_w]
+            "image_grid_thw": image_grid
         }
 
 from transformers import AutoProcessor
