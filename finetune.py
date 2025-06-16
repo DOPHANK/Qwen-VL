@@ -530,9 +530,20 @@ def train():
         use_fast=False,
         trust_remote_code=True,
     )
-    #tokenizer.pad_token_id = tokenizer.eod_id
     tokenizer.pad_token_id = tokenizer.eos_token_id
+
+    # Add <image> token here
+    if "<image>" not in tokenizer.get_vocab():
+        tokenizer.add_special_tokens({'additional_special_tokens': ["<image>"]})
     
+    processor = AutoProcessor.from_pretrained(
+        model_args.model_name_or_path,
+        trust_remote_code=True
+    )
+    processor.tokenizer = tokenizer  # make sure processor uses updated tokenizer
+    
+    model.resize_token_embeddings(len(tokenizer))  # resize after tokenizer is updated
+
     if training_args.use_lora:
         if lora_args.q_lora or "chat" in model_args.model_name_or_path.lower():
             modules_to_save = None
@@ -560,17 +571,6 @@ def train():
             model.enable_input_require_grads()
 
         model.print_trainable_parameters()
-
-    processor = AutoProcessor.from_pretrained(
-        model_args.model_name_or_path,
-        trust_remote_code=True
-    )
-    
-    if "<image>" not in tokenizer.get_vocab():
-        tokenizer.add_special_tokens({'additional_special_tokens': ["<image>"]})
-        model.resize_token_embeddings(len(tokenizer))
-
-    processor.tokenizer = tokenizer
 
     # Load data
     data_module = make_supervised_data_module(
