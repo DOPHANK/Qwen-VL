@@ -275,12 +275,22 @@ class LazySupervisedDataset(Dataset):
 
         return ret
 
+from torchvision import transforms
+
 class MultimodalSupervisedDataset(Dataset):
     def __init__(self, raw_data, processor, max_len: int):
         super(MultimodalSupervisedDataset, self).__init__()
         
         self.processor = processor
         self.max_len = max_len
+        self.image_transform = transforms.Compose([
+            transforms.Resize((336, 336)),
+            transforms.ToTensor(),
+            transforms.Normalize(
+                mean=self.processor.image_processor.image_mean,
+                std=self.processor.image_processor.image_std,
+            )
+        ])
 
         if isinstance(raw_data, str):
             with open(raw_data, "r", encoding="utf-8") as f:
@@ -295,26 +305,15 @@ class MultimodalSupervisedDataset(Dataset):
     def __getitem__(self, idx):
         sample = self.samples[idx]
         image_path = sample["conversations"][0]["value"].split("<img>")[1].split("</img>")[0]
-        image = Image.open(image_path).convert("RGB").resize((336, 336))
-        image_grid = [1, 14, 14]  # Fixed for Qwen2.5-VL
+        image = Image.open(image_path).convert("RGB")
+        pixel_values = self.image_transform(image)  # ✅ Shape: (3, 336, 336)
+
+        image_grid = [1, 14, 14]
 
         text_prompt = sample["conversations"][0]["value"].replace(
             f"<img>{image_path}</img>", "<image>"
         ) + "\n" + sample["conversations"][1]["value"]
 
-        print("Image shape before processor:", image.size)  # Expect (336, 336)
-
-        #inputs = self.processor(
-        #    text=[text_prompt],
-        #    images=[image],
-        #    return_tensors="pt",
-        #    padding="max_length",
-        #    truncation=True,
-        #    max_length=self.max_len,
-        #    do_resize=False,
-        #)
-
-                # Tokenize text only
         text_inputs = self.processor.tokenizer(
             text_prompt,
             return_tensors="pt",
@@ -322,23 +321,14 @@ class MultimodalSupervisedDataset(Dataset):
             truncation=True,
             max_length=self.max_len,
         )
-        
-        # Manually process image
-        image = image.resize((336, 336))
-        pixel_values = self.processor.image_processor.preprocess(image, return_tensors="pt")["pixel_values"].squeeze(0)
 
-        #input_ids = inputs["input_ids"].squeeze(0)
-        #attention_mask = inputs["attention_mask"].squeeze(0)
-        #pixel_values = inputs["pixel_values"].squeeze(0)
-
-        print("Pixel shape:", pixel_values.shape)  # Should be (3, 336, 336)
-    
-        # Extract processed values
         input_ids = text_inputs["input_ids"].squeeze(0)
         attention_mask = text_inputs["attention_mask"].squeeze(0)
 
         labels = input_ids.clone()
         labels[labels == self.processor.tokenizer.pad_token_id] = -100
+
+        print("Pixel shape (after transform):", pixel_values.shape)  # ✅ (3, 336, 336)
 
         return {
             "input_ids": input_ids,
