@@ -368,6 +368,7 @@ def make_supervised_data_module(
                                 train_json.append(item)
                         except Exception as e:
                             print(f"Skipping {fname} due to: {e}")
+        print(train_json)
     else:
         train_json = json.load(open(data_args.data_path, "r"))
 
