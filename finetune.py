@@ -396,7 +396,7 @@ def make_supervised_data_module(
         eval_dataset = dataset_cls(eval_json, tokenizer=tokenizer, max_len=max_len) if eval_json else None
 
     print(f"Using {dataset_cls}...")
-    print(train_dataset.image_grid_thw)
+    print(train_dataset)
     
     return dict(train_dataset=train_dataset, eval_dataset=eval_dataset)
 
