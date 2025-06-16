@@ -325,13 +325,13 @@ class MultimodalSupervisedDataset(Dataset):
         
         # Manually process image
         image = image.resize((336, 336))
-        image_tensor = self.processor.image_processor(image, return_tensors="pt")["pixel_values"].squeeze(0)
+        pixel_values = self.processor.image_processor(image, return_tensors="pt")["pixel_values"].squeeze(0)
 
         #input_ids = inputs["input_ids"].squeeze(0)
         #attention_mask = inputs["attention_mask"].squeeze(0)
         #pixel_values = inputs["pixel_values"].squeeze(0)
 
-        print("Pixel shape:", image_tensor.shape)  # Should be (3, 336, 336)
+        print("Pixel shape:", pixel_values.shape)  # Should be (3, 336, 336)
     
         # Extract processed values
         input_ids = text_inputs["input_ids"].squeeze(0)
