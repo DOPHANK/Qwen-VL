@@ -419,12 +419,12 @@ def train():
 
 
     # Set RoPE scaling factor
-    config = transformers.AutoConfig.from_pretrained(
-        model_args.model_name_or_path,
-        cache_dir=training_args.cache_dir,
-        trust_remote_code=True,
-    )
-    config.use_cache = False
+    #config = transformers.AutoConfig.from_pretrained(
+    #    model_args.model_name_or_path,
+    #    cache_dir=training_args.cache_dir,
+    #    trust_remote_code=True,
+    #)
+    #config.use_cache = False
 
     # Load model and tokenizer
     #model = transformers.AutoModelForCausalLM.from_pretrained(
@@ -451,7 +451,7 @@ def train():
     #        low_cpu_mem_usage=True
     #)
     model_kwargs = dict(
-        config=config,
+        #config=config,
         cache_dir=training_args.cache_dir,
         trust_remote_code=True,
         torch_dtype=compute_dtype,
@@ -464,6 +464,8 @@ def train():
         model_args.model_name_or_path,
         **model_kwargs
     )
+
+    model.config.use_cache = False
     
     if not training_args.use_lora:
         if training_args.fix_vit and hasattr(model,'transformer') and hasattr(model.transformer,'visual'):
