@@ -321,7 +321,7 @@ class MultimodalSupervisedDataset(Dataset):
         }
 
 def make_supervised_data_module(
-    tokenizer: transformers.PreTrainedTokenizer, data_args, max_len,
+    tokenizer: transformers.PreTrainedTokenizer, model_args, data_args, max_len,
 ) -> Dict:
     """Make dataset and collator for supervised fine-tuning."""
 
@@ -518,7 +518,7 @@ def train():
 
     # Load data
     data_module = make_supervised_data_module(
-        tokenizer=tokenizer, data_args=data_args, max_len=training_args.model_max_length
+        tokenizer=tokenizer, model_args=model_args, data_args=data_args, max_len=training_args.model_max_length
     )
 
     # Start trainner
