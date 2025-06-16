@@ -276,6 +276,7 @@ class LazySupervisedDataset(Dataset):
         return ret
 
 from torchvision import transforms
+from torchvision.transforms import InterpolationMode
 
 class MultimodalSupervisedDataset(Dataset):
     def __init__(self, raw_data, processor, max_len: int):
@@ -284,13 +285,15 @@ class MultimodalSupervisedDataset(Dataset):
         self.processor = processor
         self.max_len = max_len
         self.image_transform = transforms.Compose([
-            transforms.Resize((336, 336)),
+            transforms.Resize((336, 336), interpolation=InterpolationMode.BICUBIC),
+            transforms.CenterCrop((336, 336)),
             transforms.ToTensor(),
             transforms.Normalize(
                 mean=self.processor.image_processor.image_mean,
                 std=self.processor.image_processor.image_std,
             )
         ])
+
 
         if isinstance(raw_data, str):
             with open(raw_data, "r", encoding="utf-8") as f:
@@ -328,7 +331,9 @@ class MultimodalSupervisedDataset(Dataset):
         labels = input_ids.clone()
         labels[labels == self.processor.tokenizer.pad_token_id] = -100
 
-        print("Pixel shape (after transform):", pixel_values.shape)  # ✅ (3, 336, 336)
+        print("Pixel shape (after transform):", pixel_values.shape)
+        print("Flattened size:", pixel_values.numel())
+
 
         return {
             "input_ids": input_ids,
