@@ -396,6 +396,11 @@ def train():
         lora_args,
     ) = parser.parse_args_into_dataclasses()
 
+    print(model_args)
+    print(data_args)
+    print(training_args)
+    print(lora_args)
+
     if getattr(training_args, 'deepspeed', None) and getattr(lora_args, 'q_lora', False):
         training_args.distributed_state.distributed_type = DistributedType.DEEPSPEED
     
