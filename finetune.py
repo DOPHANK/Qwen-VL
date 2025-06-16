@@ -458,7 +458,7 @@ def train():
         quantization_config=None,
         low_cpu_mem_usage=True,
         force_download=True,
-        device_map="auto",
+        device_map="gpu",
     )
 
     model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
@@ -466,7 +466,6 @@ def train():
         **model_kwargs
     )
 
-    print(f"device: {model.device_map}")
     model.config.use_cache = False
     
     if not training_args.use_lora:
