@@ -328,7 +328,7 @@ class MultimodalSupervisedDataset(Dataset):
             "attention_mask": attention_mask,
             "pixel_values": pixel_values,
             "labels": labels,
-            "image_grid_thw": [[1, grid_h, grid_w]]
+            "image_grid_thw": [1, grid_h, grid_w]
         }
 
 from transformers import AutoProcessor
