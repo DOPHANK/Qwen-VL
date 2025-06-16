@@ -384,7 +384,6 @@ def make_supervised_data_module(
                                 train_json.append(item)
                         except Exception as e:
                             print(f"Skipping {fname} due to: {e}")
-        print(train_json)
     else:
         train_json = json.load(open(data_args.data_path, "r"))
 
@@ -569,6 +568,11 @@ def train():
             model.enable_input_require_grads()
 
         model.print_trainable_parameters()
+
+    if "<image>" not in tokenizer.get_vocab():
+        tokenizer.add_special_tokens({'additional_special_tokens': ["<image>"]})
+        model.resize_token_embeddings(len(tokenizer))
+
 
     # Load data
     data_module = make_supervised_data_module(
