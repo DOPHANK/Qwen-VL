@@ -458,7 +458,6 @@ def train():
         quantization_config=None,
         low_cpu_mem_usage=True,
         force_download=True,
-        device_map="gpu",
     )
 
     model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
