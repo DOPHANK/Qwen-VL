@@ -359,7 +359,7 @@ class MultimodalSupervisedDataset(Dataset):
 from transformers import AutoProcessor
 
 def make_supervised_data_module(
-    tokenizer: transformers.PreTrainedTokenizer, model_args, data_args, max_len,
+    processor, tokenizer: transformers.PreTrainedTokenizer, model_args, data_args, max_len,
 ) -> Dict:
     """Make dataset and collator for supervised fine-tuning."""
 
@@ -410,10 +410,7 @@ def make_supervised_data_module(
 
     if "VL" in model_args.model_name_or_path:
         dataset_cls = MultimodalSupervisedDataset
-        processor = AutoProcessor.from_pretrained(
-            model_args.model_name_or_path,
-            trust_remote_code=True
-        )
+        
         train_dataset = dataset_cls(train_json, processor=processor, max_len=max_len)
         eval_dataset = dataset_cls(eval_json, processor=processor, max_len=max_len) if eval_json else None
     else:
@@ -564,14 +561,20 @@ def train():
 
         model.print_trainable_parameters()
 
+    processor = AutoProcessor.from_pretrained(
+        model_args.model_name_or_path,
+        trust_remote_code=True
+    )
+    
     if "<image>" not in tokenizer.get_vocab():
         tokenizer.add_special_tokens({'additional_special_tokens': ["<image>"]})
         model.resize_token_embeddings(len(tokenizer))
 
+    processor.tokenizer = tokenizer
 
     # Load data
     data_module = make_supervised_data_module(
-        tokenizer=tokenizer, model_args=model_args, data_args=data_args, max_len=training_args.model_max_length
+        processor=processor, tokenizer=tokenizer, model_args=model_args, data_args=data_args, max_len=training_args.model_max_length
     )
 
     # Start trainner
