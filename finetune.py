@@ -307,13 +307,21 @@ class MultimodalSupervisedDataset(Dataset):
 
     def __getitem__(self, idx):
         sample = self.samples[idx]
-        image_path = sample["conversations"][0]["value"].split("<img>")[1].split("</img>")[0]
+    
+        raw_text = sample["conversations"][0]["value"]
+        # ✅ Ensure <img>...</img> is present
+        if "<img>" not in raw_text or "</img>" not in raw_text:
+            raise ValueError(f"Sample at idx={idx} missing <img>...</img> tags")
+    
+        # ✅ Extract image path
+        image_path = raw_text.split("<img>")[1].split("</img>")[0]
         image = Image.open(image_path).convert("RGB")
     
-        text_prompt = sample["conversations"][0]["value"].replace(
-            f"<img>{image_path}</img>", "<image>"
-        ) + "\n" + sample["conversations"][1]["value"]
+        # ✅ Replace with <image> token
+        text_prompt = raw_text.replace(f"<img>{image_path}</img>", "<image>")
+        text_prompt += "\n" + sample["conversations"][1]["value"]
     
+        # ✅ Process both image + text
         inputs = self.processor(
             text=[text_prompt],
             images=[image],
@@ -328,6 +336,14 @@ class MultimodalSupervisedDataset(Dataset):
         pixel_values = inputs["pixel_values"].squeeze(0)
         image_grid_thw = inputs["image_grid_thw"][0]
     
+        # ✅ Check for <image> token presence
+        image_token_id = self.processor.tokenizer.convert_tokens_to_ids("<image>")
+        if image_token_id not in input_ids:
+            raise ValueError(
+                f"No <image> token found in input_ids (sample idx={idx}), "
+                f"but image was provided."
+            )
+    
         labels = input_ids.clone()
         labels[labels == self.processor.tokenizer.pad_token_id] = -100
     
@@ -338,6 +354,7 @@ class MultimodalSupervisedDataset(Dataset):
             "labels": labels,
             "image_grid_thw": image_grid_thw
         }
+
 
 
 from transformers import AutoProcessor
