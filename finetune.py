@@ -309,39 +309,36 @@ class MultimodalSupervisedDataset(Dataset):
         sample = self.samples[idx]
         image_path = sample["conversations"][0]["value"].split("<img>")[1].split("</img>")[0]
         image = Image.open(image_path).convert("RGB")
-        pixel_values = self.image_transform(image)  # ✅ Shape: (3, 336, 336)
-
-        image_grid = [1, 14, 14]
-
+    
         text_prompt = sample["conversations"][0]["value"].replace(
             f"<img>{image_path}</img>", "<image>"
         ) + "\n" + sample["conversations"][1]["value"]
-
-        text_inputs = self.processor.tokenizer(
-            text_prompt,
+    
+        inputs = self.processor(
+            text=[text_prompt],
+            images=[image],
             return_tensors="pt",
             padding="max_length",
             truncation=True,
             max_length=self.max_len,
         )
-
-        input_ids = text_inputs["input_ids"].squeeze(0)
-        attention_mask = text_inputs["attention_mask"].squeeze(0)
-
+    
+        input_ids = inputs["input_ids"].squeeze(0)
+        attention_mask = inputs["attention_mask"].squeeze(0)
+        pixel_values = inputs["pixel_values"].squeeze(0)
+        image_grid_thw = inputs["image_grid_thw"][0]
+    
         labels = input_ids.clone()
         labels[labels == self.processor.tokenizer.pad_token_id] = -100
-
-        print("Pixel shape (after transform):", pixel_values.shape)
-        print("Flattened size:", pixel_values.numel())
-
-
+    
         return {
             "input_ids": input_ids,
             "attention_mask": attention_mask,
             "pixel_values": pixel_values,
             "labels": labels,
-            "image_grid_thw": image_grid
+            "image_grid_thw": image_grid_thw
         }
+
 
 from transformers import AutoProcessor
 
