@@ -304,21 +304,38 @@ class MultimodalSupervisedDataset(Dataset):
 
         print("Image shape before processor:", image.size)  # Expect (336, 336)
 
-        inputs = self.processor(
-            text=[text_prompt],
-            images=[image],
+        #inputs = self.processor(
+        #    text=[text_prompt],
+        #    images=[image],
+        #    return_tensors="pt",
+        #    padding="max_length",
+        #    truncation=True,
+        #    max_length=self.max_len,
+        #    do_resize=False,
+        #)
+
+                # Tokenize text only
+        text_inputs = self.processor.tokenizer(
+            text_prompt,
             return_tensors="pt",
             padding="max_length",
             truncation=True,
             max_length=self.max_len,
-            do_resize=False,
         )
+        
+        # Manually process image
+        image = image.resize((336, 336))
+        image_tensor = self.processor.image_processor(image, return_tensors="pt")["pixel_values"].squeeze(0)
 
-        print("Pixel shape:", inputs["pixel_values"].shape)  # Expect (1, 3, 336, 336)
+        #input_ids = inputs["input_ids"].squeeze(0)
+        #attention_mask = inputs["attention_mask"].squeeze(0)
+        #pixel_values = inputs["pixel_values"].squeeze(0)
 
-        input_ids = inputs["input_ids"].squeeze(0)
-        attention_mask = inputs["attention_mask"].squeeze(0)
-        pixel_values = inputs["pixel_values"].squeeze(0)
+        print("Pixel shape:", image_tensor.shape)  # Should be (3, 336, 336)
+    
+        # Extract processed values
+        input_ids = text_inputs["input_ids"].squeeze(0)
+        attention_mask = text_inputs["attention_mask"].squeeze(0)
 
         labels = input_ids.clone()
         labels[labels == self.processor.tokenizer.pad_token_id] = -100
