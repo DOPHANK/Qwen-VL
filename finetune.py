@@ -302,6 +302,8 @@ class MultimodalSupervisedDataset(Dataset):
             f"<img>{image_path}</img>", "<image>"
         ) + "\n" + sample["conversations"][1]["value"]
 
+        print("Image shape before processor:", image.size)  # Expect (336, 336)
+
         inputs = self.processor(
             text=[text_prompt],
             images=[image],
@@ -311,6 +313,8 @@ class MultimodalSupervisedDataset(Dataset):
             max_length=self.max_len,
             do_resize=False,
         )
+
+        print("Pixel shape:", inputs["pixel_values"].shape)  # Expect (1, 3, 336, 336)
 
         input_ids = inputs["input_ids"].squeeze(0)
         attention_mask = inputs["attention_mask"].squeeze(0)
