@@ -300,7 +300,7 @@ class MultimodalSupervisedDataset(Dataset):
         h, w = image.size
         grid_h = h // 24
         grid_w = w // 24
-        image_grid = [[1, grid_h, grid_w]]
+        image_grid = torch.tensor([[1, grid_h, grid_w]])
 
         text_prompt = sample["conversations"][0]["value"].replace(
             f"<img>{image_path}</img>", "<image>"
