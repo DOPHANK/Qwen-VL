@@ -309,6 +309,7 @@ class MultimodalSupervisedDataset(Dataset):
             padding="max_length",
             truncation=True,
             max_length=self.max_len,
+            do_resize=False,
         )
 
         input_ids = inputs["input_ids"].squeeze(0)
