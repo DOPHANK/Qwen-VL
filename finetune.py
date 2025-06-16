@@ -318,8 +318,6 @@ class MultimodalSupervisedDataset(Dataset):
         labels = input_ids.clone()
         labels[labels == self.processor.tokenizer.pad_token_id] = -100
 
-        print("DEBUG image_grid_thw =", [[1, grid_h, grid_w]])
-
         return {
             "input_ids": input_ids,
             "attention_mask": attention_mask,
