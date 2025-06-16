@@ -16,6 +16,7 @@ from transformers import Trainer, GPTQConfig
 from transformers.trainer_pt_utils import LabelSmoother
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 from accelerate.utils import DistributedType
+import deepspeed
 
 IGNORE_TOKEN_ID = LabelSmoother.ignore_index
 
