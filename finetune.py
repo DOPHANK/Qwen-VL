@@ -335,13 +335,15 @@ class MultimodalSupervisedDataset(Dataset):
         attention_mask = inputs["attention_mask"].squeeze(0)
         pixel_values = inputs["pixel_values"].squeeze(0)
         image_grid_thw = inputs["image_grid_thw"][0]
-    
-        # ✅ Check for <image> token presence
+        
         image_token_id = self.processor.tokenizer.convert_tokens_to_ids("<image>")
-        if image_token_id is None:
-            raise ValueError("The tokenizer does not recognize the <image> token. "
-                             "Make sure your tokenizer is correctly loaded and supports multimodal input.")
-
+        print("Image token ID:", image_token_id)
+        print("Does input_ids contain image_token_id?", image_token_id in input_ids.tolist())
+        
+        if image_token_id not in input_ids:
+            raise ValueError(
+                f"Missing <image> token in input_ids.\nPrompt was:\n{text_prompt}\nToken IDs: {input_ids.tolist()}"
+            )
 
         labels = input_ids.clone()
         labels[labels == self.processor.tokenizer.pad_token_id] = -100
