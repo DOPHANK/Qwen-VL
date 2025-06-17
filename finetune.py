@@ -37,18 +37,35 @@ class DataArguments:
         default=None, metadata={"help": "Path to the evaluation data."}
     )
     lazy_preprocess: bool = False
+    
+    image_folder: Optional[str] = field(default=None)
+    image_min_pixels: Optional[int] = field(default=3136)
+    image_max_pixels: Optional[int] = field(default=12845056)
+    image_resized_width: int = field(default=None)
+    image_resized_height: int = field(default=None)
 
 
 @dataclass
 class TrainingArguments(transformers.TrainingArguments):
     cache_dir: Optional[str] = field(default=None)
     optim: str = field(default="adamw_torch")
-    model_max_length: int = field(
-        default=8192,
+    adam_beta1: float = field(default=0.9)
+    adam_beta2: float = field(default=0.999)
+    adam_epsilon: float = field(default=1e-8)
+
+    freeze_vision_tower: bool = field(default=False)
+    freeze_llm: bool = field(default=False)
+    freeze_merger: bool = field(default=False)
+    disable_flash_attn2: bool = field(default=False)
+
+    max_seq_length: int = field(
+        default=32768, # This is the default value of the qwen2-vl model
         metadata={
-            "help": "Maximum sequence length. Sequences will be right padded (and possibly truncated)."
+            "help":
+                "Maximum sequence length. Sequences will be right padded (and possibly truncated)."
         },
     )
+    
     use_lora: bool = False
     fix_vit: bool = True
 
@@ -542,9 +559,9 @@ def train():
         model_args.model_name_or_path,
         trust_remote_code=True
     )
-    processor.tokenizer = tokenizer  # make sure processor uses updated tokenizer
+    processor.tokenizer = tokenizer
     
-    model.resize_token_embeddings(len(tokenizer))  # resize after tokenizer is updated
+    model.resize_token_embeddings(len(tokenizer))
 
     if training_args.use_lora:
         if lora_args.q_lora or "chat" in model_args.model_name_or_path.lower():
@@ -574,11 +591,16 @@ def train():
 
         model.print_trainable_parameters()
 
-    #print("Freezing visual encoder...")
-    #if hasattr(model, "visual"):
-    #    for param in model.visual.parameters():
-    #        param.requires_grad = False
-            
+    if not training_args.freeze_vision_tower:
+        for name, param in model.named_parameters():
+            if "visual" in name:
+                param.requires_grad = True
+                
+    if not training_args.freeze_merger:
+        for name, param in model.named_parameters():
+            if "merger" in name:
+                param.requires_grad = True
+                    
     # Load data
     data_module = make_supervised_data_module(
         processor=processor, tokenizer=tokenizer, model_args=model_args, data_args=data_args, max_len=training_args.model_max_length
