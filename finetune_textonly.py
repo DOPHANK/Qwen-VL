@@ -380,6 +380,11 @@ def train():
         if training_args.gradient_checkpointing:
             model.enable_input_require_grads()
 
+    print("Freezing visual encoder...")
+    if hasattr(model, "visual"):
+        for param in model.visual.parameters():
+            param.requires_grad = False
+
     # Load data
     data_module = make_supervised_data_module(
         tokenizer=tokenizer, data_args=data_args, max_len=training_args.model_max_length
