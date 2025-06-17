@@ -574,6 +574,11 @@ def train():
 
         model.print_trainable_parameters()
 
+    #print("Freezing visual encoder...")
+    #if hasattr(model, "visual"):
+    #    for param in model.visual.parameters():
+    #        param.requires_grad = False
+            
     # Load data
     data_module = make_supervised_data_module(
         processor=processor, tokenizer=tokenizer, model_args=model_args, data_args=data_args, max_len=training_args.model_max_length
