@@ -58,7 +58,7 @@ class TrainingArguments(transformers.TrainingArguments):
     freeze_merger: bool = field(default=False)
     disable_flash_attn2: bool = field(default=False)
 
-    max_seq_length: int = field(
+    model_max_length: int = field(
         default=32768, # This is the default value of the qwen2-vl model
         metadata={
             "help":
